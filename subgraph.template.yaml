@@ -1,0 +1,62 @@
+specVersion: 0.0.4
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: NiftyzoneMarketplace
+    network: "{{network}}"
+    source:
+      address: "{{NiftyzoneMarketplaceContractAddress}}"
+      startBlock: "{{NiftyzoneMarketplace_StartBlock}}"
+      abi: NiftyzoneMarketplace
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - MarketItemSale
+        - MarketItemDelisted
+        - MarketItem
+        - Offer
+      abis:
+        - name: NiftyzoneMarketplace
+          file: ./abis/NiftyzoneMarketplace.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: ERC721
+          file: ./abis/ERC721.json
+        - name: ERC1155
+          file: ./abis/ERC1155.json
+      eventHandlers:
+        - event: MarketItemCreated(indexed uint256,indexed address,uint256,indexed address,address,uint256,uint256,uint256,uint256)
+          handler: handleMarketItemCreated
+        - event: MarketItemSale(indexed uint256,address,uint256,uint256,uint256,uint256,uint256,address,indexed address,indexed address)
+          handler: handleMarketItemSale
+        - event: MarketItemDelisted(indexed uint256,indexed address,uint256,uint256,uint256,indexed address)
+          handler: handleMarketItemDelisted
+        - event: NewOffer(indexed uint256,indexed address,address,uint256,uint256)
+          handler: handleMarketOffer
+      file: ./src/mappings/NiftyzoneMarketplace.ts
+
+  - kind: ethereum/contract
+    name: NiftyzoneMinter
+    network: "{{network}}"
+    source:
+      address: "{{NiftyzoneMinterContractAddress}}"
+      startBlock: "{{NiftyzoneMinter_StartBlock}}"
+      abi: NiftyzoneMinter
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Token
+        - UserToken
+        - Transfer
+      abis:
+        - name: NiftyzoneMinter
+          file: ./abis/NiftyzoneMinter.json
+      eventHandlers:
+        - event: tokenCreation(indexed uint256,uint256,uint256,uint256,address,address)
+          handler: handleTokenCreation
+      file: ./src/mappings/NiftyzoneMinter.ts

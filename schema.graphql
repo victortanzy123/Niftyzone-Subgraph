@@ -1,0 +1,139 @@
+enum TokenType {
+  NATIVE
+  ERC20
+  ERC721
+  ERC1155
+}
+
+# ERC20 Token currency
+type Currency @entity {
+  id: ID!
+  type: TokenType!
+  name: String!
+  symbol: String!
+  decimals: BigInt!
+  syncingIndex: BigInt!
+}
+
+# Niftyzone Token created on platform
+type NiftyzoneToken @entity {
+  id: ID!
+  token: Token!
+  name: String!
+  image: String!
+  creator: User!
+  artist: String!
+  timestampCreatedAt: BigInt!
+  description: String!
+  externalUrl: String!
+  totalSupply: BigInt!
+  secondaryRoyalties: BigInt!
+  royaltiesReceiver: String!
+  syncingIndex: BigInt!
+}
+
+# Token Entity for both marketplace transaction & Token created from NiftyzoneMinter
+type Token @entity {
+  id: ID!
+  type: TokenType!
+  name: String!
+  symbol: String!
+  tokenUri: String!
+  syncingIndex: BigInt!
+}
+
+# User-Token entity for balances of nft tokens (both ERC721 & ERC1155)
+type UserToken @entity {
+  id: ID!
+  user: User!
+  token: Token!
+  totalSent: BigInt!
+  totalReceived: BigInt!
+  balance: BigInt!
+  syncingIndex: BigInt!
+}
+
+type User @entity {
+  id: ID!
+  syncingIndex: BigInt!
+}
+
+# Handle both TransferSingle and TransferBatch
+type Transfer @entity {
+  id: ID!
+  hash: String!
+  token: Token!
+  operator: User!
+  from: User!
+  to: User!
+  value: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  syncingIndex: BigInt!
+}
+
+# Can use event handler to save this entity:
+type MarketItemSale @entity {
+  id: ID!
+  token: Token!
+  quantityBought: BigInt!
+  totalPricePaid: BigDecimal!
+  timeSold: BigInt!
+  currency: Currency!
+  seller: User!
+  buyer: User!
+  syncingIndex: BigInt!
+}
+
+type MarketItemDelisted @entity {
+  id: ID!
+  token: Token!
+  delistedTimestamp: BigInt!
+  seller: User!
+  syncingIndex: BigInt!
+}
+
+# To save states of Item Listings:
+type MarketItem @entity {
+  id: ID!
+  token: Token!
+  originalQuantityListed: BigInt!
+  quantityListed: BigInt!
+  price: BigDecimal!
+  currency: Currency!
+  listed: Boolean!
+  timestampCreatedAt: BigInt!
+  deadline: BigInt!
+  seller: User!
+  syncingIndex: BigInt!
+}
+
+# Offer for listed market items
+type Offer @entity {
+  id: ID!
+  listingId: BigInt!
+  offeror: User!
+  currency: Currency!
+  desiredQuantity: BigInt!
+  totalOfferAmount: BigDecimal!
+  syncingIndex: BigInt!
+}
+
+# User Trade Data on Niftyzone Marketplace
+type UserTradeData @entity {
+  id: ID!
+  user: User!
+  network: String!
+  purchased: BigInt!
+  sold: BigInt!
+  buyVolume: BigDecimal!
+  saleVolume: BigDecimal!
+  listings: [MarketItem!]
+  syncingIndex: BigInt!
+}
+
+# Miscellaneous Syncing Index
+type Bundle @entity {
+  id: ID!
+  syncingIndex: BigInt!
+}
