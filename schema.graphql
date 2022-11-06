@@ -137,3 +137,9 @@ type Bundle @entity {
   id: ID!
   syncingIndex: BigInt!
 }
+
+# Interfaces:
+interface IRoyaltyInfo {
+  royaltiesAmount: BigInt!
+  receiver: String!
+}

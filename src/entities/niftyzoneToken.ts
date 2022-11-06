@@ -1,4 +1,4 @@
-import { Address, BigInt, ipfs, json } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, ipfs, json } from "@graphprotocol/graph-ts";
 
 // ABIs:
 import { NiftyzoneMinter } from "../../generated/NiftyzoneMinter/NiftyzoneMinter";
@@ -13,9 +13,17 @@ import {
   NATIVE,
   setSyncingIndex,
   getNiftyzoneTokenIpfsHash,
-  RoyaltyInfo,
 } from "../utils/helper";
 
+export class RoyaltyInfo {
+  royaltiesAmount: BigInt;
+  receiver: string;
+
+  constructor(royaltiesAmount: BigInt, receiver: string) {
+    this.royaltiesAmount = royaltiesAmount;
+    this.receiver = receiver;
+  }
+}
 // Niftyzone Token -> ID = address-tokenId
 export function getNiftyzoneToken(
   tokenId: BigInt,
@@ -44,23 +52,37 @@ export function getNiftyzoneToken(
     niftyzoneToken.totalSupply = totalSupply;
 
     // Retrieve metadata of tokenId
-    let metadata = getTokenMetadata(contractAddress, tokenId);
+    let ipfsResult = getTokenMetadata(contractAddress, tokenId);
 
-    niftyzoneToken.name = metadata.get("name") ?? "";
-    niftyzoneToken.image = metadata.get("image") ?? "";
-    niftyzoneToken.description = metadata.get("description") ?? "";
-    niftyzoneToken.externalUrl = metadata.get("external_url") ?? "";
-    niftyzoneToken.artist = metadata.get("artist") ?? "";
+    if (ipfsResult) {
+      const metadata = json.fromBytes(ipfsResult).toObject();
+
+      const image = metadata.get("image");
+      const name = metadata.get("name");
+      const description = metadata.get("description");
+      const externalURL = metadata.get("external_url");
+      const artist = metadata.get("artist");
+
+      if (name && image && description && externalURL) {
+        niftyzoneToken.name = name.toString();
+        niftyzoneToken.image = image.toString();
+        niftyzoneToken.externalUrl = externalURL.toString();
+        niftyzoneToken.description = description.toString();
+      }
+
+      if (artist) {
+        niftyzoneToken.artist = artist.toString();
+      }
+    }
     setSyncingIndex("niftyzonetokens", niftyzoneToken);
-  }
 
-  niftyzoneToken.save();
+    niftyzoneToken.save();
+  }
 
   return niftyzoneToken;
 }
 
 // Metadata helper functions:
-
 export function getName(address: string): string {
   let contract = NiftyzoneMinter.bind(Address.fromString(address));
   const result = contract.try_name();
@@ -109,18 +131,21 @@ export function getRoyaltiesInfo(
   const result = contract.try_royaltyInfo(tokenId, BPS_BI);
 
   if (result.reverted) {
-    return { royaltiesAmount: ZERO_BI, receiver: NATIVE };
+    return new RoyaltyInfo(ZERO_BI, NATIVE);
   }
 
-  const royaltyInfo = {
-    royaltiesAmount: result.value.getValue1(),
-    receiver: result.value.getValue0().toHexString(),
-  };
+  const royaltyInfo: RoyaltyInfo = new RoyaltyInfo(
+    result.value.getValue1(),
+    result.value.getValue0().toHexString()
+  );
 
   return royaltyInfo;
 }
 
-export function getTokenMetadata(address: string, tokenId: BigInt): any {
+export function getTokenMetadata(
+  address: string,
+  tokenId: BigInt
+): Bytes | null {
   let tokenUri = getTokenUri(address, tokenId);
 
   // Retrieve IPFS hash from tokenUri
@@ -131,5 +156,5 @@ export function getTokenMetadata(address: string, tokenId: BigInt): any {
   // Get metadata from IPFS
   let metadata = ipfs.cat(metadataIpfs);
 
-  return metadata ? json.fromBytes(metadata).toObject() : null;
+  return metadata;
 }

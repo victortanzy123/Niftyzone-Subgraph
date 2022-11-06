@@ -2,7 +2,7 @@ import { BigDecimal, BigInt, Entity, Value } from "@graphprotocol/graph-ts";
 import { Bundle } from "../../generated/schema";
 import { ZERO_BI, ONE_BI, IPFS_HASH_LENGTH } from "./constants.template";
 
-export interface RoyaltyInfo {
+export interface IRoyaltyInfo {
   royaltiesAmount: BigInt;
   receiver: string;
 }
@@ -41,7 +41,7 @@ export function getNewOfferId(
   offeror: string,
   marketplace: string,
   listingId: BigInt
-) {
+): string {
   return `${offeror}-${marketplace}-${listingId}`;
 }
 

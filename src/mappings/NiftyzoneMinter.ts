@@ -1,4 +1,4 @@
-import { dataSource } from "@graphprotocol/graph-ts";
+import { dataSource, json } from "@graphprotocol/graph-ts";
 
 // Events from ABI:
 import {
@@ -28,6 +28,8 @@ import {
 export function handleTransferSingle(event: TransferSingleEvent): void {
   let niftyzoneMinter = dataSource.address().toHexString();
   let tokenId = event.params.id;
+
+  // Retrieve or create niftyzoneToken:
   let niftyzoneToken = getNiftyzoneToken(tokenId, niftyzoneMinter);
 
   niftyzoneToken.save();
@@ -36,7 +38,6 @@ export function handleTransferSingle(event: TransferSingleEvent): void {
   let index = event.logIndex;
   let blockNumber = event.block.number;
   let blockTimestamp = event.block.timestamp;
-
   let transferId = getTransferId(hash, index, tokenId);
 
   // Create new Transfer object:
@@ -53,10 +54,10 @@ export function handleTransferSingle(event: TransferSingleEvent): void {
 
   transfer.save();
 
+  // Update UserToken Data:
   let from = getUser(event.params.from.toHexString());
   let to = getUser(event.params.to.toHexString());
 
-  // Update UserToken Data:
   let fromUserToken = getUserToken(from.id, tokenId.toString());
   fromUserToken.totalReceived = fromUserToken.totalReceived.plus(
     event.params.value
@@ -68,7 +69,6 @@ export function handleTransferSingle(event: TransferSingleEvent): void {
   let toUserToken = getUserToken(to.id, tokenId.toString());
   toUserToken.totalSent = toUserToken.totalSent.plus(event.params.value);
   toUserToken.balance = toUserToken.balance.minus(event.params.value);
-
   toUserToken.save();
 }
 
@@ -80,6 +80,7 @@ export function handleTransferBatch(event: TransferBatchEvent): void {
 
   // Retrieve and save all tokens in the graph node
   for (let i = 0; i < tokens.length; i++) {
+    // Retrieve or create niftyzoneToken:
     let niftyzoneToken = getNiftyzoneToken(tokens[i], niftyzoneMinter);
 
     niftyzoneToken.save();
@@ -95,6 +96,7 @@ export function handleTransferBatch(event: TransferBatchEvent): void {
 
     // Create new Transfer object:
     let transfer = new Transfer(transferId);
+
     transfer.hash = hash;
     transfer.token = dataSource.address().toHexString();
     transfer.operator = event.params.operator.toHexString();
@@ -114,10 +116,9 @@ export function handleTransferBatch(event: TransferBatchEvent): void {
     let fromUserToken = getUserToken(from.id, tokens[i].toString());
     fromUserToken.totalReceived = fromUserToken.totalReceived.plus(amounts[i]);
     fromUserToken.balance = fromUserToken.balance.plus(amounts[i]);
-
     fromUserToken.save();
-
     let toUserToken = getUserToken(to.id, tokens[i].toString());
+
     toUserToken.totalSent = toUserToken.totalSent.plus(amounts[i]);
     toUserToken.balance = toUserToken.balance.minus(amounts[i]);
 
@@ -137,7 +138,6 @@ export function handleTokenCreation(event: TokenCreation): void {
 
   // Save token on the graph node:
   let niftyzoneToken = new NiftyzoneToken(niftyzoneTokenId);
-
   niftyzoneToken.token = niftyzoneMinter;
   niftyzoneToken.creator = event.params.creator.toHexString();
   niftyzoneToken.timestampCreatedAt = blockTimestamp;
@@ -149,14 +149,30 @@ export function handleTokenCreation(event: TokenCreation): void {
   // Total supply of tokenId
   let totalSupply = getTokenTotalSupply(niftyzoneMinter, tokenId);
   niftyzoneToken.totalSupply = totalSupply;
-
   // Metadata of tokenId
-  let metadata = getTokenMetadata(niftyzoneMinter, tokenId);
-  niftyzoneToken.name = metadata.get("name") ?? "";
-  niftyzoneToken.image = metadata.get("image") ?? "";
-  niftyzoneToken.description = metadata.get("description") ?? "";
-  niftyzoneToken.externalUrl = metadata.get("external_url") ?? "";
-  niftyzoneToken.artist = metadata.get("artist") ?? "";
+  let ipfsResult = getTokenMetadata(niftyzoneMinter, tokenId);
+
+  if (ipfsResult) {
+    const metadata = json.fromBytes(ipfsResult).toObject();
+
+    const image = metadata.get("image");
+    const name = metadata.get("name");
+    const description = metadata.get("description");
+    const externalURL = metadata.get("external_url");
+    const artist = metadata.get("artist");
+
+    if (name && image && description && externalURL) {
+      niftyzoneToken.name = name.toString();
+      niftyzoneToken.image = image.toString();
+      niftyzoneToken.externalUrl = externalURL.toString();
+      niftyzoneToken.description = description.toString();
+    }
+
+    if (artist) {
+      niftyzoneToken.artist = artist.toString();
+    }
+  }
+  setSyncingIndex("niftyzonetokens", niftyzoneToken);
 
   niftyzoneToken.save();
 }

@@ -115,7 +115,7 @@ export function handleMarketItemDelisted(event: MarketItemDelistedEvent): void {
 
   marketItem.listed = false;
 
-  marketItem?.save();
+  marketItem.save();
 }
 
 export function handleNewOffer(event: NewOfferEvent): void {
