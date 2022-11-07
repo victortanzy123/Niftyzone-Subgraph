@@ -19,13 +19,13 @@ type Currency @entity {
 type NiftyzoneToken @entity {
   id: ID!
   token: Token!
-  name: String!
-  image: String!
   creator: User!
-  artist: String!
+  name: String
+  image: String
+  artist: String
   timestampCreatedAt: BigInt!
-  description: String!
-  externalUrl: String!
+  description: String
+  externalUrl: String
   totalSupply: BigInt!
   secondaryRoyalties: BigInt!
   royaltiesReceiver: String!
@@ -78,7 +78,7 @@ type MarketItemSale @entity {
   token: Token!
   quantityBought: BigInt!
   totalPricePaid: BigDecimal!
-  timeSold: BigInt!
+  timeSold: BigInt
   currency: Currency!
   seller: User!
   buyer: User!

@@ -35,6 +35,7 @@ export function handleMarketItemCreated(event: MarketItemCreatedEvent): void {
   marketItem.deadline = event.params.deadline;
   marketItem.seller = event.params.seller.toHexString();
   marketItem.currency = event.params.currency.toHexString();
+  setSyncingIndex("marketitems", marketItem);
 
   let currency = getCurrency(event.params.currency.toHexString());
   marketItem.price = toDecimal(event.params.price, currency.decimals);

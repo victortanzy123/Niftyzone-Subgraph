@@ -1,5 +1,5 @@
 // Schemas:
-import { Token } from "../../generated/schema";
+import { NiftyzoneToken } from "../../generated/schema";
 
 // Constants/Helper:
 import { ZERO_BI } from "../utils/constants.template";
