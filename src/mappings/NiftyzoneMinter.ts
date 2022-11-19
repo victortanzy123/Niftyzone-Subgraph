@@ -14,6 +14,7 @@ import {
   getTokenMetadata,
   getTokenTotalSupply,
 } from "../entities/niftyzoneToken";
+import { getToken } from "../entities/token";
 import { getUser } from "../entities/user";
 import { getUserToken } from "../entities/userToken";
 
@@ -28,6 +29,11 @@ import {
 export function handleTransferSingle(event: TransferSingleEvent): void {
   let niftyzoneMinter = dataSource.address().toHexString();
   let tokenId = event.params.id;
+
+  // Retrieve or create token object:
+  let token = getToken(tokenId.toString(), niftyzoneMinter);
+
+  token.save();
 
   // Retrieve or create niftyzoneToken:
   let niftyzoneToken = getNiftyzoneToken(tokenId, niftyzoneMinter);
@@ -80,6 +86,11 @@ export function handleTransferBatch(event: TransferBatchEvent): void {
 
   // Retrieve and save all tokens in the graph node
   for (let i = 0; i < tokens.length; i++) {
+    // Retrieve or create token object:
+    let token = getToken(tokens[i].toString(), niftyzoneMinter);
+
+    token.save();
+
     // Retrieve or create niftyzoneToken:
     let niftyzoneToken = getNiftyzoneToken(tokens[i], niftyzoneMinter);
 
@@ -131,6 +142,8 @@ export function handleTokenCreation(event: TokenCreation): void {
   let niftyzoneMinter = dataSource.address().toHexString();
   let tokenId = event.params.tokenId;
 
+  let token = getToken(tokenId.toString(), niftyzoneMinter);
+
   let niftyzoneTokenId = getNiftyzoneTokenEntityId(
     niftyzoneMinter,
     tokenId.toString()
@@ -138,7 +151,7 @@ export function handleTokenCreation(event: TokenCreation): void {
 
   // Save token on the graph node:
   let niftyzoneToken = new NiftyzoneToken(niftyzoneTokenId);
-  niftyzoneToken.token = niftyzoneMinter;
+  niftyzoneToken.token = token.id;
   niftyzoneToken.creator = event.params.creator.toHexString();
   niftyzoneToken.timestampCreatedAt = blockTimestamp;
 

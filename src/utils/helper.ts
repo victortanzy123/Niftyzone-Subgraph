@@ -34,7 +34,7 @@ export function getMarketItemSaleId(
   logIndex: BigInt,
   listingId: BigInt
 ): string {
-  return `${hash}-${logIndex}=${listingId}`;
+  return `${hash}-${logIndex}-${listingId}`;
 }
 
 export function getNewOfferId(

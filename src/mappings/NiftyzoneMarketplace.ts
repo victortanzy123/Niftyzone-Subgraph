@@ -23,8 +23,17 @@ import {
 } from "../utils/helper";
 import { dataSource } from "@graphprotocol/graph-ts";
 import { getUserTradeData } from "../entities/userTradeData";
+import { getToken } from "../entities/token";
 
 export function handleMarketItemCreated(event: MarketItemCreatedEvent): void {
+  // Retrieve or create token object:
+  let token = getToken(
+    event.params.tokenId.toString(),
+    event.params.nftContract.toHexString()
+  );
+
+  token.save();
+
   let marketItem = new MarketItem(event.params.listingId.toString());
 
   marketItem.token = event.params.nftContract.toHexString();
@@ -52,6 +61,14 @@ export function handleMarketItemSale(event: MarketItemSaleEvent): void {
   let currencyAddress = event.params.currency.toHexString();
   let seller = event.params.seller.toHexString();
   let buyer = event.params.buyer.toHexString();
+
+  // Retrieve or create token object:
+  let token = getToken(
+    event.params.tokenId.toString(),
+    event.params.nftContract.toHexString()
+  );
+
+  token.save();
 
   // Save Market Sale Transaction
   let marketItemSaleId = getMarketItemSaleId(hash.toString(), index, listingId);

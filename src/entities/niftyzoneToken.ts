@@ -37,7 +37,7 @@ export function getNiftyzoneToken(
   let niftyzoneToken = NiftyzoneToken.load(niftyzoneTokenId);
   if (!niftyzoneToken) {
     niftyzoneToken = new NiftyzoneToken(niftyzoneTokenId);
-    niftyzoneToken.token = contractAddress;
+    niftyzoneToken.token = niftyzoneTokenId;
     niftyzoneToken.creator = NATIVE;
     niftyzoneToken.timestampCreatedAt = ZERO_BI;
 

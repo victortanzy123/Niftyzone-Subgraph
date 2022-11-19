@@ -42,6 +42,10 @@ export function getName(address: string): string {
 }
 
 export function getSymbol(address: string): string {
+  if (isNative(address)) {
+    return getNativeName();
+  }
+
   let contract = ERC20.bind(Address.fromString(address));
   const result = contract.try_symbol();
 
@@ -52,6 +56,10 @@ export function getSymbol(address: string): string {
 }
 
 export function getDecimals(address: string): BigInt {
+  if (isNative(address)) {
+    return ZERO_BI;
+  }
+
   let contract = ERC20.bind(Address.fromString(address));
   const result = contract.try_decimals();
 
