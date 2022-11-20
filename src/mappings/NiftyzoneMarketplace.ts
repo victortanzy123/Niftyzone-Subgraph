@@ -36,7 +36,7 @@ export function handleMarketItemCreated(event: MarketItemCreatedEvent): void {
 
   let marketItem = new MarketItem(event.params.listingId.toString());
 
-  marketItem.token = event.params.nftContract.toHexString();
+  marketItem.token = token.id;
   marketItem.originalQuantityListed = event.params.quantity;
   marketItem.quantityListed = event.params.quantity;
   marketItem.timestampCreatedAt = event.block.timestamp;
@@ -73,7 +73,7 @@ export function handleMarketItemSale(event: MarketItemSaleEvent): void {
   // Save Market Sale Transaction
   let marketItemSaleId = getMarketItemSaleId(hash.toString(), index, listingId);
   let marketItemSale = new MarketItemSale(marketItemSaleId);
-  marketItemSale.token = event.params.nftContract.toHexString();
+  marketItemSale.token = token.id;
   marketItemSale.quantityBought = event.params.quantityBought;
   marketItemSale.currency = currencyAddress;
 
