@@ -107,6 +107,8 @@ export function handleMarketItemSale(event: MarketItemSaleEvent): void {
     marketItemSale.totalPricePaid
   );
 
+  sellerTradeData.save();
+
   let buyerTradeData = getUserTradeData(buyer);
   buyerTradeData.purchased = buyerTradeData.purchased.plus(
     marketItemSale.quantityBought
@@ -114,6 +116,8 @@ export function handleMarketItemSale(event: MarketItemSaleEvent): void {
   buyerTradeData.buyVolume = buyerTradeData.buyVolume.plus(
     marketItemSale.totalPricePaid
   );
+
+  buyerTradeData.save();
 }
 
 export function handleMarketItemPriceUpdate(

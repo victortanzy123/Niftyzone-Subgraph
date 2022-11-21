@@ -15,8 +15,8 @@ export function getCurrency(address: string): Currency {
   let currency = Currency.load(address);
   if (!currency) {
     currency = new Currency(address);
-    currency.name = getName(address);
     currency.type = getType(address);
+    currency.name = getName(address);
     currency.symbol = getSymbol(address);
     currency.decimals = getDecimals(address);
     setSyncingIndex("currency", currency);
@@ -36,7 +36,7 @@ export function getName(address: string): string {
   const result = contract.try_name();
 
   if (result.reverted) {
-    return "unknown";
+    return "UNKNOWN";
   }
   return result.value;
 }
@@ -50,7 +50,7 @@ export function getSymbol(address: string): string {
   const result = contract.try_symbol();
 
   if (result.reverted) {
-    return "unknown";
+    return "UNKNOWN";
   }
   return result.value;
 }
@@ -70,14 +70,13 @@ export function getDecimals(address: string): BigInt {
 }
 
 function isNative(id: string): boolean {
-  if (id.toLowerCase() === NATIVE || id.toLowerCase() === NATIVE_ALT)
-    return true;
+  if (id.toLowerCase() == NATIVE || id.toLowerCase() == NATIVE_ALT) return true;
 
   return false;
 }
 
 function getNativeName(): string {
-  if (dataSource.network() === "bsc") {
+  if (dataSource.network() == "bsc") {
     return "BNB";
   } else if (dataSource.network() == "ethereum") {
     return "ETH";
