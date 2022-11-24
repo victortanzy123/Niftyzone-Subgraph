@@ -49,7 +49,7 @@ export function handleTransferSingle(event: TransferSingleEvent): void {
   // Create new Transfer object:
   let transfer = new Transfer(transferId);
   transfer.hash = hash;
-  transfer.token = dataSource.address().toHexString();
+  transfer.token = niftyzoneToken.id;
   transfer.operator = event.params.operator.toHexString();
   transfer.from = event.params.from.toHexString();
   transfer.to = event.params.to.toHexString();
@@ -64,25 +64,35 @@ export function handleTransferSingle(event: TransferSingleEvent): void {
   let from = getUser(event.params.from.toHexString());
   let to = getUser(event.params.to.toHexString());
 
-  let fromUserToken = getUserToken(from.id, tokenId.toString());
-  fromUserToken.totalReceived = fromUserToken.totalReceived.plus(
-    event.params.value
+  let fromUserToken = getUserToken(
+    from.id,
+    tokenId.toString(),
+    niftyzoneMinter
   );
-  fromUserToken.balance = fromUserToken.balance.plus(event.params.value);
+  fromUserToken.totalSent = fromUserToken.totalSent.plus(event.params.value);
+  fromUserToken.balance = fromUserToken.balance.minus(event.params.value);
 
   fromUserToken.save();
 
-  let toUserToken = getUserToken(to.id, tokenId.toString());
-  toUserToken.totalSent = toUserToken.totalSent.plus(event.params.value);
-  toUserToken.balance = toUserToken.balance.minus(event.params.value);
+  let toUserToken = getUserToken(to.id, tokenId.toString(), niftyzoneMinter);
+  toUserToken.totalReceived = toUserToken.totalReceived.plus(
+    event.params.value
+  );
+  toUserToken.balance = toUserToken.balance.plus(event.params.value);
+
   toUserToken.save();
 }
 
-// Handle TransferSingle events:
+// Handle TransferBatch events:
 export function handleTransferBatch(event: TransferBatchEvent): void {
   let niftyzoneMinter = dataSource.address().toHexString();
   let tokens = event.params.ids;
   let amounts = event.params.values;
+
+  let hash = event.transaction.hash.toHexString();
+  let index = event.logIndex;
+  let blockNumber = event.block.number;
+  let blockTimestamp = event.block.timestamp;
 
   // Retrieve and save all tokens in the graph node
   for (let i = 0; i < tokens.length; i++) {
@@ -95,21 +105,14 @@ export function handleTransferBatch(event: TransferBatchEvent): void {
     let niftyzoneToken = getNiftyzoneToken(tokens[i], niftyzoneMinter);
 
     niftyzoneToken.save();
-  }
-
-  let hash = event.transaction.hash.toHexString();
-  let index = event.logIndex;
-  let blockNumber = event.block.number;
-  let blockTimestamp = event.block.timestamp;
-
-  for (let i = 0; i < tokens.length; i++) {
-    let transferId = getTransferId(hash, index, tokens[i]);
 
     // Create new Transfer object:
+    let transferId = getTransferId(hash, index, tokens[i]);
+
     let transfer = new Transfer(transferId);
 
     transfer.hash = hash;
-    transfer.token = dataSource.address().toHexString();
+    transfer.token = niftyzoneToken.id;
     transfer.operator = event.params.operator.toHexString();
     transfer.from = event.params.from.toHexString();
     transfer.to = event.params.to.toHexString();
@@ -124,11 +127,19 @@ export function handleTransferBatch(event: TransferBatchEvent): void {
     let from = getUser(event.params.from.toHexString());
     let to = getUser(event.params.to.toHexString());
 
-    let fromUserToken = getUserToken(from.id, tokens[i].toString());
+    let fromUserToken = getUserToken(
+      from.id,
+      tokens[i].toString(),
+      niftyzoneMinter
+    );
     fromUserToken.totalReceived = fromUserToken.totalReceived.plus(amounts[i]);
     fromUserToken.balance = fromUserToken.balance.plus(amounts[i]);
     fromUserToken.save();
-    let toUserToken = getUserToken(to.id, tokens[i].toString());
+    let toUserToken = getUserToken(
+      to.id,
+      tokens[i].toString(),
+      niftyzoneMinter
+    );
 
     toUserToken.totalSent = toUserToken.totalSent.plus(amounts[i]);
     toUserToken.balance = toUserToken.balance.minus(amounts[i]);
