@@ -8,6 +8,7 @@ import { ERC1155 } from "../../generated/NiftyzoneMarketplace/ERC1155";
 
 // Constants/Helper:
 import { getNiftyzoneTokenEntityId, setSyncingIndex } from "../utils/helper";
+import { ERC721_INTERFACE_ID, ERC1155_INTERFACE_ID } from "../utils/constants";
 
 // Niftyzone Token -> ID = address-tokenId
 export function getToken(tokenId: string, contractAddress: string): Token {
@@ -17,7 +18,7 @@ export function getToken(tokenId: string, contractAddress: string): Token {
 
   if (!token) {
     token = new Token(tokenEntityId);
-    token.type = "ERC1155";
+    token.type = getType(contractAddress);
     token.name = getName(contractAddress);
     token.symbol = getSymbol(contractAddress);
     token.tokenUri = getTokenUri(contractAddress, BigInt.fromString(tokenId));
@@ -27,6 +28,34 @@ export function getToken(tokenId: string, contractAddress: string): Token {
   token.save();
 
   return token;
+}
+
+export function getType(address: string): string {
+  let contract_721 = ERC721.bind(Address.fromString(address));
+  const interface721_validity_result = contract_721.try_supportsInterface(
+    ERC721_INTERFACE_ID
+  );
+
+  if (
+    !interface721_validity_result.reverted &&
+    interface721_validity_result.value
+  ) {
+    return "ERC721";
+  }
+
+  let contract_1155 = ERC1155.bind(Address.fromString(address));
+  const interface1155_validity_result = contract_1155.try_supportsInterface(
+    ERC1155_INTERFACE_ID
+  );
+
+  if (
+    !interface1155_validity_result.reverted &&
+    interface1155_validity_result.value
+  ) {
+    return "ERC1155";
+  }
+
+  return "UNKNOWN";
 }
 
 // Metadata helper functions:

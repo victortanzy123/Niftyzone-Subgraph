@@ -1,4 +1,5 @@
 enum TokenType {
+  UNKNOWN
   NATIVE
   ERC20
   ERC721
@@ -137,4 +138,3 @@ type Bundle @entity {
   id: ID!
   syncingIndex: BigInt!
 }
-
