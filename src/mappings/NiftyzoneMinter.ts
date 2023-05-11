@@ -323,6 +323,8 @@ export function handleTransferBatch(event: TransferBatchEvent): void {
 }
 
 export function handleTokenCreation(event: TokenCreation): void {
+  let hash = event.block.hash.toHexString();
+  let blockNumber = event.block.number;
   let blockTimestamp = event.block.timestamp;
   let niftyzoneMinter = dataSource.address().toHexString();
   let tokenId = event.params.tokenId;
@@ -336,9 +338,11 @@ export function handleTokenCreation(event: TokenCreation): void {
 
   // Save token on the graph node:
   let niftyzoneToken = new NiftyzoneToken(niftyzoneTokenId);
+  niftyzoneToken.txHash = hash;
+  niftyzoneToken.blockNumber = blockNumber;
   niftyzoneToken.token = token.id;
   niftyzoneToken.creator = event.params.creator.toHexString();
-  niftyzoneToken.timestampCreatedAt = blockTimestamp;
+  niftyzoneToken.timestamp = blockTimestamp;
 
   // Royalties Info get directly from event:
   niftyzoneToken.secondaryRoyalties = event.params.royaltyPercent;

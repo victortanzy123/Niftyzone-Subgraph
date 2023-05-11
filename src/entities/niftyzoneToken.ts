@@ -11,6 +11,7 @@ import { ZERO_BI, IPFS_HASH_LENGTH, BPS_BI } from "../utils/constants.template";
 import { getNiftyzoneTokenEntityId } from "../utils/helper";
 import {
   NATIVE,
+  NATIVE_ALT,
   setSyncingIndex,
   getNiftyzoneTokenIpfsHash,
 } from "../utils/helper";
@@ -37,9 +38,11 @@ export function getNiftyzoneToken(
   let niftyzoneToken = NiftyzoneToken.load(niftyzoneTokenId);
   if (!niftyzoneToken) {
     niftyzoneToken = new NiftyzoneToken(niftyzoneTokenId);
+    niftyzoneToken.txHash = NATIVE_ALT;
+    niftyzoneToken.blockNumber = ZERO_BI;
     niftyzoneToken.token = niftyzoneTokenId;
     niftyzoneToken.creator = NATIVE;
-    niftyzoneToken.timestampCreatedAt = ZERO_BI;
+    niftyzoneToken.timestamp = ZERO_BI;
 
     // Royalty Info for tokenId
     let royaltyInfo = getRoyaltiesInfo(contractAddress, tokenId);

@@ -29,12 +29,36 @@ export function getTransferId(
   return `${hash}-${logIndex}-${tokenId}`;
 }
 
+export function getMarketItemCreationId(
+  hash: string,
+  logIndex: BigInt,
+  listingId: BigInt
+): string {
+  return `${hash}-${logIndex.toString()}-${listingId.toString()}-CREATE`;
+}
+
+export function getMarketItemUpdateId(
+  hash: string,
+  logIndex: BigInt,
+  listingId: BigInt
+): string {
+  return `${hash}-${logIndex.toString()}-${listingId.toString()}-UPDATE`;
+}
+
 export function getMarketItemSaleId(
   hash: string,
   logIndex: BigInt,
   listingId: BigInt
 ): string {
-  return `${hash}-${logIndex.toString()}-${listingId.toString()}`;
+  return `${hash}-${logIndex.toString()}-${listingId.toString()}-SALE`;
+}
+
+export function getMarketItemDelistId(
+  hash: string,
+  logIndex: BigInt,
+  listingId: BigInt
+): string {
+  return `${hash}-${logIndex.toString()}-${listingId.toString()}-DELIST`;
 }
 
 export function getNewOfferId(

@@ -19,12 +19,14 @@ type Currency @entity {
 # Niftyzone Token created on platform
 type NiftyzoneToken @entity {
   id: ID!
+  txHash: String!
+  blockNumber: BigInt!
   token: Token!
   creator: User!
   name: String
   image: String
   artist: String
-  timestampCreatedAt: BigInt!
+  timestamp: BigInt!
   description: String
   externalUrl: String
   totalSupply: BigInt!
@@ -73,23 +75,53 @@ type Transfer @entity {
   syncingIndex: BigInt!
 }
 
+# To save states of Item Listings:
+type MarketItemCreation @entity {
+  id: ID!
+  token: Token!
+  quantity: BigInt!
+  price: BigDecimal!
+  currency: Currency!
+  txHash: String!
+  timestampCreatedAt: BigInt!
+  blockNumber: BigInt!
+  deadline: BigInt!
+  seller: User!
+  syncingIndex: BigInt!
+}
+
 # Can use event handler to save this entity:
 type MarketItemSale @entity {
   id: ID!
   token: Token!
-  quantityBought: BigInt!
+  txHash: String!
+  blockNumber: BigInt!
+  quantityPurchased: BigInt!
   totalPricePaid: BigDecimal!
-  timeSold: BigInt
+  timestampCreatedAt: BigInt!
   currency: Currency!
   seller: User!
   buyer: User!
   syncingIndex: BigInt!
 }
 
-type MarketItemDelisted @entity {
+# To save states of Item Listings:
+type MarketItemUpdate @entity {
   id: ID!
-  token: Token!
-  delistedTimestamp: BigInt!
+  txHash: String!
+  timestampCreatedAt: BigInt!
+  blockNumber: BigInt!
+  seller: User!
+  newPrice: BigDecimal!
+  syncingIndex: BigInt!
+}
+
+# To save as an event emitted for delisting a market item
+type MarketItemDelist @entity {
+  id: ID!
+  txHash: String!
+  blockNumber: BigInt!
+  timestampCreatedAt: BigInt!
   seller: User!
   syncingIndex: BigInt!
 }

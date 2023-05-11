@@ -1,5 +1,14 @@
+import { dataSource } from "@graphprotocol/graph-ts";
+
 // Schema:
-import { MarketItem, MarketItemSale, Offer } from "../../generated/schema";
+import {
+  MarketItem,
+  MarketItemCreation,
+  MarketItemUpdate,
+  MarketItemSale,
+  Offer,
+  MarketItemDelist,
+} from "../../generated/schema";
 
 // ABIs:
 import {
@@ -13,19 +22,37 @@ import {
 // Entities
 import { getCurrency } from "../entities/currency";
 import { getMarketItem } from "../entities/marketListing";
+import { getUserTradeData } from "../entities/userTradeData";
+import { getToken } from "../entities/token";
 
 // Constants/Helper
 import {
+  getMarketItemCreationId,
+  getMarketItemDelistId,
   getMarketItemSaleId,
+  getMarketItemUpdateId,
   getNewOfferId,
   setSyncingIndex,
   toDecimal,
 } from "../utils/helper";
-import { dataSource } from "@graphprotocol/graph-ts";
-import { getUserTradeData } from "../entities/userTradeData";
-import { getToken } from "../entities/token";
 
+// @Desc: Saves both the event of creating a listing & also a marketItem object for tracking as transactions occurs.
 export function handleMarketItemCreated(event: MarketItemCreatedEvent): void {
+  let hash = event.block.hash.toHexString();
+  let index = event.logIndex;
+  let blockNumber = event.block.number;
+  let listingId = event.params.listingId;
+
+  let currencyAddress = event.params.currency.toHexString();
+  let quantityListed = event.params.quantity;
+  let timestamp = event.block.timestamp;
+  let deadline = event.params.deadline;
+
+  let currency = getCurrency(currencyAddress);
+  let price = toDecimal(event.params.price, currency.decimals);
+
+  let seller = event.params.seller.toHexString();
+
   // Retrieve or create token object:
   let token = getToken(
     event.params.tokenId.toString(),
@@ -34,29 +61,47 @@ export function handleMarketItemCreated(event: MarketItemCreatedEvent): void {
 
   token.save();
 
+  // Create Item Creation Event:
+  let marketItemCreationId = getMarketItemCreationId(hash, index, listingId);
+  let marketItemCreation = new MarketItemCreation(marketItemCreationId);
+
+  marketItemCreation.txHash = hash;
+  marketItemCreation.blockNumber = blockNumber;
+  marketItemCreation.token = token.id;
+  marketItemCreation.quantity = quantityListed;
+  marketItemCreation.currency = currencyAddress;
+  marketItemCreation.price = price;
+  marketItemCreation.timestampCreatedAt = timestamp;
+  marketItemCreation.deadline = deadline;
+  marketItemCreation.seller = seller;
+  setSyncingIndex("marketitemcreations", marketItemCreation);
+
+  marketItemCreation.save();
+
+  // Create Market Item for dynamic tracking:
   let marketItem = new MarketItem(event.params.listingId.toString());
 
   marketItem.token = token.id;
-  marketItem.originalQuantityListed = event.params.quantity;
-  marketItem.quantityListed = event.params.quantity;
-  marketItem.timestampCreatedAt = event.block.timestamp;
+  marketItem.originalQuantityListed = quantityListed;
+  marketItem.quantityListed = quantityListed;
+  marketItem.timestampCreatedAt = timestamp;
   marketItem.listed = true;
-  marketItem.deadline = event.params.deadline;
-  marketItem.seller = event.params.seller.toHexString();
-  marketItem.currency = event.params.currency.toHexString();
+  marketItem.deadline = deadline;
+  marketItem.seller = seller;
+  marketItem.currency = currencyAddress;
+  marketItem.price = price;
   setSyncingIndex("marketitems", marketItem);
 
-  let currency = getCurrency(event.params.currency.toHexString());
-  marketItem.price = toDecimal(event.params.price, currency.decimals);
-
   marketItem.save();
-
-  // Update user trade data:
 }
 
+// @Desc: Saves both the event of a sale transaction from a valid listing & also update the marketItem object and user trade data (both buyer and seller)
 export function handleMarketItemSale(event: MarketItemSaleEvent): void {
-  let hash = event.block.hash;
+  let hash = event.block.hash.toHexString();
   let index = event.logIndex;
+  let blockNumber = event.block.number;
+  let timestamp = event.block.timestamp;
+
   let listingId = event.params.listingId;
   let currencyAddress = event.params.currency.toHexString();
   let seller = event.params.seller.toHexString();
@@ -71,10 +116,13 @@ export function handleMarketItemSale(event: MarketItemSaleEvent): void {
   token.save();
 
   // Save Market Sale Transaction
-  let marketItemSaleId = getMarketItemSaleId(hash.toString(), index, listingId);
+  let marketItemSaleId = getMarketItemSaleId(hash, index, listingId);
   let marketItemSale = new MarketItemSale(marketItemSaleId);
   marketItemSale.token = token.id;
-  marketItemSale.quantityBought = event.params.quantityBought;
+  marketItemSale.txHash = hash;
+  marketItemSale.blockNumber = blockNumber;
+  marketItemSale.timestampCreatedAt = timestamp;
+  marketItemSale.quantityPurchased = event.params.quantityBought;
   marketItemSale.currency = currencyAddress;
 
   let currency = getCurrency(currencyAddress);
@@ -82,13 +130,13 @@ export function handleMarketItemSale(event: MarketItemSaleEvent): void {
     event.params.totalPricePaid,
     currency.decimals
   );
-  marketItemSale.seller = event.params.seller.toHexString();
-  marketItemSale.buyer = event.params.buyer.toHexString();
+  marketItemSale.seller = seller;
+  marketItemSale.buyer = buyer;
   setSyncingIndex("marketitemsales", marketItemSale);
 
   marketItemSale.save();
 
-  // Update Market Item
+  // Update Market Item Object
   let marketItem = getMarketItem(event.params.listingId);
 
   marketItem.quantityListed = marketItem.quantityListed.minus(
@@ -101,7 +149,7 @@ export function handleMarketItemSale(event: MarketItemSaleEvent): void {
   let sellerTradeData = getUserTradeData(seller);
 
   sellerTradeData.sold = sellerTradeData.sold.plus(
-    marketItemSale.quantityBought
+    marketItemSale.quantityPurchased
   );
   sellerTradeData.saleVolume = sellerTradeData.saleVolume.plus(
     marketItemSale.totalPricePaid
@@ -111,7 +159,7 @@ export function handleMarketItemSale(event: MarketItemSaleEvent): void {
 
   let buyerTradeData = getUserTradeData(buyer);
   buyerTradeData.purchased = buyerTradeData.purchased.plus(
-    marketItemSale.quantityBought
+    marketItemSale.quantityPurchased
   );
   buyerTradeData.buyVolume = buyerTradeData.buyVolume.plus(
     marketItemSale.totalPricePaid
@@ -120,19 +168,70 @@ export function handleMarketItemSale(event: MarketItemSaleEvent): void {
   buyerTradeData.save();
 }
 
+// @Desc: Saves both the event of a market item price update transaction from a valid listing & also update the marketItem object
 export function handleMarketItemPriceUpdate(
   event: MarketItemPriceUpdateEvent
 ): void {
+  let hash = event.block.hash.toHexString();
+  let logIndex = event.logIndex;
+  let blockNumber = event.block.number;
+  let timestamp = event.block.timestamp;
+
+  let listingId = event.params.listingId;
+  let seller = event.params.seller.toHexString();
+
+  let currencyAddress = event.params.currency.toHexString();
+  let currency = getCurrency(currencyAddress);
+
+  let newPrice = toDecimal(event.params.newPrice, currency.decimals);
+
+  // Create new Market Item Update entity:
+  let marketItemUpdateId = getMarketItemUpdateId(hash, logIndex, listingId);
+
+  let marketItemUpdate = new MarketItemUpdate(marketItemUpdateId);
+
+  marketItemUpdate.txHash = hash;
+  marketItemUpdate.blockNumber = blockNumber;
+  marketItemUpdate.timestampCreatedAt = timestamp;
+  marketItemUpdate.seller = seller;
+  marketItemUpdate.newPrice = newPrice;
+  setSyncingIndex("marketitemupdates", marketItemUpdate);
+
+  marketItemUpdate.save();
+
+  // Update Market Item upon updating listing price
   let marketItem = getMarketItem(event.params.listingId);
 
-  let currency = getCurrency(marketItem.currency);
-  marketItem.price = toDecimal(event.params.newPrice, currency.decimals);
+  marketItem.price = newPrice;
   // @To-do: Deal with updated deadline
 
   marketItem.save();
 }
 
+// @Desc: Saves both the event of a market item delist transaction from a valid listing & also update the marketItem object
 export function handleMarketItemDelisted(event: MarketItemDelistedEvent): void {
+  let hash = event.block.hash.toHexString();
+  let logIndex = event.logIndex;
+  let blockNumber = event.block.number;
+  let timestamp = event.block.timestamp;
+
+  let listingId = event.params.listingId;
+  let seller = event.params.seller.toHexString();
+
+  let marketItemDelistId = getMarketItemDelistId(hash, logIndex, listingId);
+
+  // Create Market Item Delist Entity
+  let marketItemDelist = new MarketItemDelist(marketItemDelistId);
+
+  marketItemDelist.txHash = hash;
+  marketItemDelist.timestampCreatedAt = timestamp;
+  marketItemDelist.blockNumber = blockNumber;
+  marketItemDelist.seller = seller;
+  setSyncingIndex("marketitemdelists", marketItemDelist);
+
+  marketItemDelist.save();
+
+  // Update market item:
   let marketItem = getMarketItem(event.params.listingId);
 
   marketItem.listed = false;
